@@ -246,14 +246,15 @@
                     <div
                         class="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg opacity-30 group-hover:opacity-100 blur transition duration-500">
                     </div>
-                    <div class="relative flex items-center bg-white dark:bg-dark-surface rounded-lg p-1.5 shadow-xl">
+                    <div
+                        class="relative flex items-center bg-white dark:bg-dark-surface rounded-xl p-2 shadow-2xl ring-1 ring-black/5">
                         <input type="text" x-model="urlInput" placeholder="Paste URL to download..."
-                            class="flex-1 bg-transparent border-none focus:ring-0 text-sm px-3 dark:text-white"
-                            @keydown.enter="startDownload()">
+                            class="flex-1 bg-transparent border-none focus:ring-0 text-lg px-4 py-3 dark:text-white placeholder:text-slate-400"
+                            autocomplete="off" @keydown.enter="startDownload()">
                         <button @click="startDownload()" :disabled="isDownloading"
-                            class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50">
+                            class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg text-base font-semibold transition-all shadow-lg hover:shadow-blue-500/30 disabled:opacity-50 disabled:shadow-none flex items-center gap-2">
                             <span x-show="!isDownloading">Download</span>
-                            <span x-show="isDownloading"><i class="ph ph-spinner animate-spin"></i></span>
+                            <span x-show="isDownloading"><i class="ph ph-spinner animate-spin text-xl"></i></span>
                         </button>
                     </div>
                 </div>
@@ -454,8 +455,8 @@
 
                 // Advanced Options
                 showAdvanced: true,
-                strategy: 'auto',
-                useSelenium: false,
+                strategy: 'fusion',
+                useSelenium: true,
                 filterInclude: '',
                 filterExclude: '',
 
