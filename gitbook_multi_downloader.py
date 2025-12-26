@@ -95,6 +95,7 @@ class GitBookMultiDownloader:
         import json
         import sys
         message = json.dumps({"type": type, "data": data})
+        # This is CRITICAL for the web_server to receive status updates
         print(f"JSON-SINK: {message}")
         sys.stdout.flush()
 

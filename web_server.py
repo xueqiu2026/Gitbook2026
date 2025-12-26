@@ -11,7 +11,11 @@ from pydantic import BaseModel
 import subprocess
 import threading
 import json
-from datetime import datetime
+import logging
+
+# Setup Logger
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("web_server")
 
 # Simple in-memory task store
 # { task_id: { status: 'running'|'completed'|'failed', progress: ..., result: ... } }
@@ -45,9 +49,9 @@ def migrate_root_files():
                 src.rename(dst)
                 count += 1
             except Exception as e:
-                print(f"Failed to move {src.name}: {e}")
+                logger.error(f"Failed to move {src.name}: {e}")
     if count > 0:
-        print(f"📦 Migrated {count} files to library/")
+        logger.info(f"📦 Migrated {count} files to library/")
 
 # Run migration on startup
 migrate_root_files()
@@ -166,7 +170,8 @@ async def get_history():
     files = []
     # Scan library directory
     md_files = list(LIBRARY_DIR.glob("*.md"))
-    print(f"DEBUG: Scanning {LIBRARY_DIR}, found {len(md_files)} .md files")
+    # DEBUG: Scanning
+    logger.debug(f"Scanning {LIBRARY_DIR}, found {len(md_files)} .md files")
     
     for f in md_files:
         try:

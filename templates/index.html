@@ -277,29 +277,29 @@
                             <div class="relative">
                                 <select id="strategy" name="strategy" x-model="strategy"
                                     class="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
-                                    <option value="auto">Auto Select / 自动选择 (Recommended)</option>
-                                    <option value="fusion">Fusion / 融合模式 (Ultimate - 强力推荐)</option>
-                                    <option value="universal">Universal / 通用模式</option>
-                                    <option value="scraping">Scraping / 爬虫模式 (Legacy)</option>
-                                    <option value="github">GitHub Strategy / GitHub 克隆</option>
-                                    <option value="sitemap">Sitemap Strategy / 站点地图</option>
+                                    <option value="auto">Auto (Smart Detect / 智能选择)</option>
+                                    <option value="fusion">Fusion (Ultimate / 融合模式) - ⭐ Recommand</option>
+                                    <option value="universal">Universal (Sitemap+Scan / 通用模式)</option>
+                                    <option value="scraping">Scraping (Legacy / 暴力爬取)</option>
                                 </select>
-                                <p class="text-slate-400 text-[10px] mt-1">
-                                    <span x-show="strategy === 'fusion'">交叉验证多种引擎，确保页面最全、结构最准。</span>
-                                    <span x-show="strategy === 'universal'">适用于非标准GitBook，支持多级嵌套探测。</span>
-                                    <span x-show="strategy === 'auto'">自动尝试所有已知模式。</span>
-                                </p>
+                                <div
+                                    class="mt-2 text-[11px] text-slate-500 dark:text-slate-400 space-y-1 bg-slate-100 dark:bg-black/20 p-2 rounded border border-slate-200 dark:border-white/5">
+                                    <p x-show="strategy === 'auto'"><strong class="text-blue-500">Auto:</strong>
+                                        Automatically selects the fastest method (GitHub Clone > Sitemap > Scraping).
+                                    </p>
+                                    <p x-show="strategy === 'fusion'"><strong class="text-purple-500">Fusion:</strong>
+                                        The Best Choice. Combines Sitemap, Sidebar, and Smart Probe to create a perfect,
+                                        structured document with 100% content integrity.</p>
+                                    <p x-show="strategy === 'universal'"><strong
+                                            class="text-green-500">Universal:</strong> Good for sites without GitHub
+                                        presence. Recursively maps sitemaps and links.</p>
+                                    <p x-show="strategy === 'scraping'"><strong
+                                            class="text-orange-500">Scraping:</strong> Slowest but compatible with
+                                        everything. Simulates a user clicking every link.</p>
+                                </div>
                                 <i
-                                    class="ph ph-caret-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+                                    class="ph ph-caret-down absolute right-3 top-3 text-slate-400 pointer-events-none"></i>
                             </div>
-                            <p class="text-[10px] text-slate-400 leading-tight">
-                                <span x-show="strategy === 'auto'">Attempts all methods
-                                    automatically.<br>自动尝试所有下载方式。</span>
-                                <span x-show="strategy === 'universal'">Best for complex docs. Scans sitemap &
-                                    links.<br>适用于复杂文档，扫描网站地图和链接。</span>
-                                <span x-show="strategy === 'scraping'">Old method. Use only if others
-                                    fail.<br>旧版方法，仅当其他失败时使用。</span>
-                            </p>
                         </div>
 
                         <!-- Selenium Toggle -->
