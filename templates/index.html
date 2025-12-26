@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="antialiased">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clean Reader</title>
+
+    <!-- Alpine.js & Tailwind -->
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.13.3/dist/cdn.min.js"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Merriweather:wght@300;400;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Markdown Parser -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark-dimmed.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Merriweather', 'serif'],
+                    },
+                    colors: {
+                        dark: {
+                            bg: '#0f1117',
+                            surface: '#161b22',
+                            border: '#30363d',
+                            text: '#c9d1d9',
+                            muted: '#8b949e'
+                        }
+                    },
+                    typography: (theme) => ({
+                        DEFAULT: {
+                            css: {
+                                maxWidth: '100ch', // Wider reading area
+                                color: '#374151',
+                                'h1, h2, h3': { color: '#111827' },
+                                pre: { backgroundColor: '#1e293b' },
+                            }
+                        },
+                        dark: {
+                            css: {
+                                color: '#c9d1d9',
+                                'h1, h2, h3': { color: '#f0f6fc' },
+                                strong: { color: '#f0f6fc' },
+                                a: { color: '#58a6ff' },
+                                code: { color: '#e1e4e8', backgroundColor: '#21262d' },
+                                blockquote: { borderColor: '#30363d', color: '#8b949e' },
+                                'th, td': { borderColor: '#30363d' },
+                            }
+                        }
+                    })
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #30363d;
+        }
+
+        /* Layout Transitions */
+        .sidebar-transition {
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        [x-cloak] {
+            display: none !important;
+        }
+
+        /* Tree View Styles */
+        .toc-tree-line {
+            position: absolute;
+            left: 0.75rem;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background-color: #e2e8f0;
+            /* slate-200 */
+        }
+
+        .dark .toc-tree-line {
+            background-color: #30363d;
+        }
+
+        .toc-active-indicator {
+            position: absolute;
+            left: 0;
+            top: 0.25rem;
+            bottom: 0.25rem;
+            width: 3px;
+            background-color: #3b82f6;
+            /* blue-500 */
+            border-radius: 0 4px 4px 0;
+        }
+    </style>
+</head>
+
+<body class="h-screen flex text-slate-900 bg-white dark:bg-dark-bg dark:text-dark-text selection:bg-blue-500/30"
+    x-data="reader()" :class="{ 'dark': isDark }">
+
+    <!-- LEFT SIDEBAR (Unified) -->
+    <aside
+        class="flex-shrink-0 flex flex-col border-r border-slate-200 dark:border-dark-border bg-slate-50 dark:bg-dark-surface sidebar-transition relative z-20"
+        :style="`width: ${sidebarWidth}px`">
+
+        <!-- Sidebar Header Mode Switch -->
+        <div class="h-14 flex items-center px-4 border-b border-slate-200 dark:border-dark-border justify-between">
+            <template x-if="viewMode === 'reader'">
+                <button @click="viewMode = 'library'"
+                    class="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 dark:text-dark-muted dark:hover:text-white transition-colors">
+                    <i class="ph ph-arrow-left"></i> Back
+                </button>
+            </template>
+            <template x-if="viewMode === 'library'">
+                <div class="flex items-center gap-2 font-medium text-sm">
+                    <i class="ph ph-books text-lg"></i> Library
+                </div>
+            </template>
+
+            <div class="flex gap-1">
+                <button @click="toggleTheme()"
+                    class="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 dark:text-dark-muted">
+                    <i class="ph" :class="isDark ? 'ph-sun' : 'ph-moon'"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Sidebar Content Area -->
+        <div class="flex-1 overflow-y-auto custom-scrollbar p-3">
+
+            <!-- MODE: LIBRARY -->
+            <div x-show="viewMode === 'library'" class="space-y-1">
+                <template x-for="file in library" :key="file.filename">
+                    <div @click="openFile(file)"
+                        class="group p-2.5 rounded-lg cursor-pointer hover:bg-slate-200 dark:hover:bg-white/5 transition-colors">
+                        <div class="flex items-start gap-3">
+                            <i class="ph ph-file-text text-xl text-slate-400 mt-0.5"></i>
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center justify-between gap-2">
+                                    <h3 class="text-sm font-medium truncate text-slate-700 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400"
+                                        x-text="file.title || file.filename"></h3>
+                                    <span
+                                        class="text-[10px] font-mono text-slate-400 bg-slate-100 dark:bg-white/5 px-1.5 rounded shrink-0"
+                                        x-text="file.filename"></span>
+                                </div>
+                                <div class="flex items-center gap-2 text-xs text-slate-400 mt-1">
+                                    <span x-text="formatDate(file.modified)"></span>
+                                    <span>&bull;</span>
+                                    <span x-text="formatSize(file.size)"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+                <div x-show="library.length === 0" class="text-center py-10 text-slate-400 text-sm">
+                    Empty Library
+                </div>
+            </div>
+
+            <!-- MODE: READ/OUTLINE -->
+            <div x-show="viewMode === 'reader'">
+                <div class="mb-4 px-2">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Table of Contents</h3>
+                    <div id="outline-tree" class="text-sm space-y-1"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Resizer Handle -->
+        <div class="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-500/50 transition-colors"
+            @mousedown="startResize"></div>
+    </aside>
+
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 flex flex-col min-w-0 bg-white dark:bg-dark-bg relative">
+
+        <!-- Top Toolbar -->
+        <header
+            class="h-14 border-b border-transparent flex items-center justify-between px-6 shrink-0 transition-colors hover:border-slate-100 dark:hover:border-dark-border">
+            <!-- Breadcrumbs -->
+            <div class="text-sm text-slate-500 dark:text-dark-muted truncate flex items-center gap-2">
+                <span class="cursor-pointer hover:text-slate-900 dark:hover:text-white" @click="goHome()">Library</span>
+                <i class="ph ph-caret-right text-xs"></i>
+                <span class="font-medium text-slate-900 dark:text-white"
+                    x-text="currentFile ? (currentFile.title || currentFile.filename) : 'Dashboard'"></span>
+            </div>
+
+            <!-- Context Actions -->
+            <div class="flex items-center gap-3">
+                <button x-show="currentFile" @click="downloadPdf()"
+                    class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 hover:text-red-500 rounded-full transition-colors"
+                    title="Export as PDF">
+                    <i class="ph ph-file-pdf text-lg"></i>
+                    <span class="hidden md:inline">Export PDF</span>
+                </button>
+                <button @click="goHome()"
+                    class="hidden md:flex items-center gap-2 px-3 py-1.5 text-xs font-medium bg-slate-100 dark:bg-white/5 hover:bg-slate-200 rounded-full transition-colors">
+                    <i class="ph ph-plus"></i> New Download
+                </button>
+            </div>
+        </header>
+
+        <!-- Viewer / Dashboard Container -->
+        <div class="flex-1 overflow-y-auto scroll-smooth custom-scrollbar relative px-8 md:px-16 py-10"
+            id="main-scroll">
+
+            <!-- EMPTY STATE / HERO INPUT -->
+            <div x-show="!currentFile" class="max-w-2xl mx-auto mt-20 text-center animate-fade-in">
+                <h1 class="text-3xl font-serif text-slate-900 dark:text-white mb-6">开始阅读 / Ready to Read?</h1>
+
+                <!-- Input Box -->
+                <div class="relative group max-w-lg mx-auto">
+                    <div
+                        class="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg opacity-30 group-hover:opacity-100 blur transition duration-500">
+                    </div>
+                    <div class="relative flex items-center bg-white dark:bg-dark-surface rounded-lg p-1.5 shadow-xl">
+                        <input type="text" x-model="urlInput" placeholder="Paste URL to download..."
+                            class="flex-1 bg-transparent border-none focus:ring-0 text-sm px-3 dark:text-white"
+                            @keydown.enter="startDownload()">
+                        <button @click="startDownload()" :disabled="isDownloading"
+                            class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50">
+                            <span x-show="!isDownloading">Download</span>
+                            <span x-show="isDownloading"><i class="ph ph-spinner animate-spin"></i></span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tasks Status -->
+                <!-- Advanced Options -->
+                <div class="max-w-lg mx-auto mt-6 mb-4">
+                    <button @click="showAdvanced = !showAdvanced"
+                        class="group flex items-center justify-center gap-2 w-full sm:w-auto mx-auto px-5 py-2.5 text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 dark:bg-white/5 dark:hover:bg-white/10 dark:border-white/5 dark:text-slate-300 rounded-xl transition-all active:scale-95">
+                        <i class="ph text-lg" :class="showAdvanced ? 'ph-caret-up' : 'ph-gear'"></i>
+                        <span>Advanced Options / 高级选项</span>
+                    </button>
+
+                    <div x-show="showAdvanced"
+                        class="mt-3 p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5 grid grid-cols-1 md:grid-cols-2 gap-5 text-left shadow-inner">
+                        <!-- Strategy Selector -->
+                        <div class="flex flex-col gap-2">
+                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Strategy /
+                                下载策略</label>
+                            <div class="relative">
+                                <select id="strategy" name="strategy" x-model="strategy"
+                                    class="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                                    <option value="auto">Auto Select / 自动选择 (Recommended)</option>
+                                    <option value="fusion">Fusion / 融合模式 (Ultimate - 强力推荐)</option>
+                                    <option value="universal">Universal / 通用模式</option>
+                                    <option value="scraping">Scraping / 爬虫模式 (Legacy)</option>
+                                    <option value="github">GitHub Strategy / GitHub 克隆</option>
+                                    <option value="sitemap">Sitemap Strategy / 站点地图</option>
+                                </select>
+                                <p class="text-slate-400 text-[10px] mt-1">
+                                    <span x-show="strategy === 'fusion'">交叉验证多种引擎，确保页面最全、结构最准。</span>
+                                    <span x-show="strategy === 'universal'">适用于非标准GitBook，支持多级嵌套探测。</span>
+                                    <span x-show="strategy === 'auto'">自动尝试所有已知模式。</span>
+                                </p>
+                                <i
+                                    class="ph ph-caret-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+                            </div>
+                            <p class="text-[10px] text-slate-400 leading-tight">
+                                <span x-show="strategy === 'auto'">Attempts all methods
+                                    automatically.<br>自动尝试所有下载方式。</span>
+                                <span x-show="strategy === 'universal'">Best for complex docs. Scans sitemap &
+                                    links.<br>适用于复杂文档，扫描网站地图和链接。</span>
+                                <span x-show="strategy === 'scraping'">Old method. Use only if others
+                                    fail.<br>旧版方法，仅当其他失败时使用。</span>
+                            </p>
+                        </div>
+
+                        <!-- Selenium Toggle -->
+                        <div class="flex flex-col gap-2">
+                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Rendering /
+                                渲染引擎</label>
+                            <label
+                                class="flex items-start gap-3 cursor-pointer p-2 rounded-lg hover:bg-white dark:hover:bg-white/5 border border-transparent hover:border-slate-200 dark:hover:border-white/10 transition-all">
+                                <div class="relative flex items-center mt-0.5">
+                                    <input type="checkbox" x-model="useSelenium"
+                                        class="peer h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-sm font-medium text-slate-700 dark:text-slate-200">Use Browser /
+                                        浏览器渲染</span>
+                                    <span class="text-xs text-slate-400">Slower, but handles dynamic
+                                        content.<br>速度较慢，但能处理动态内容。</span>
+                                </div>
+                            </label>
+                        </div>
+                        <!-- Filters -->
+                        <div
+                            class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-200 dark:border-white/10">
+                            <div class="flex flex-col gap-2">
+                                <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Include Path /
+                                    包含路径</label>
+                                <input type="text" x-model="filterInclude" placeholder="e.g. docs/"
+                                    class="w-full bg-white dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-slate-700 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-slate-400">
+                                <p class="text-[10px] text-slate-400">Only download URLs containing this
+                                    string.<br>仅包含此字符串的链接。</p>
+                            </div>
+                            <div class="flex flex-col gap-2">
+                                <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Exclude Paths /
+                                    排除路径</label>
+                                <input type="text" x-model="filterExclude" placeholder="e.g. /api/, /changelog/"
+                                    class="w-full bg-white dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-slate-700 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-slate-400">
+                                <p class="text-[10px] text-slate-400">Skip URLs containing these
+                                    strings.<br>跳过包含此字符串的链接。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Command Center Dashboard -->
+                <div x-show="taskId"
+                    class="mt-8 p-6 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm transition-all duration-500">
+
+                    <!-- Header -->
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <span x-show="taskStatus === 'running'" class="flex h-3 w-3 relative">
+                                    <span
+                                        class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                    <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+                                </span>
+                                <span x-show="taskStatus === 'completed'" class="text-green-500"><i
+                                        class="ph ph-check-circle text-lg"></i></span>
+                                <span x-show="taskStatus === 'failed'" class="text-red-500"><i
+                                        class="ph ph-x-circle text-lg"></i></span>
+
+                                <span
+                                    x-text="taskStatus === 'running' ? 'Downloading...' : (taskStatus === 'completed' ? 'Download Complete' : 'Download Failed')"></span>
+                            </h3>
+                            <p class="text-xs text-slate-500 mt-1" x-text="progress.status || 'Initializing engine...'">
+                            </p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-2xl font-bold text-slate-700 dark:text-slate-200 font-mono"
+                                x-text="Math.round(progressPercent) + '%'"></span>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="h-2 w-full bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden mb-6">
+                        <div class="h-full bg-blue-500 transition-all duration-500 ease-out relative"
+                            :style="`width: ${progressPercent}%`">
+                            <div class="absolute inset-0 bg-white/20 animate-pulse"></div>
+                        </div>
+                    </div>
+
+                    <!-- Stats Grid -->
+                    <div class="grid grid-cols-3 gap-4 mb-6">
+                        <div
+                            class="bg-white dark:bg-white/5 p-3 rounded-xl border border-slate-100 dark:border-white/5 shadow-sm">
+                            <div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Total</div>
+                            <div class="text-xl font-mono font-bold text-slate-700 dark:text-slate-200"
+                                x-text="progress.total || '-'"></div>
+                        </div>
+                        <div
+                            class="bg-white dark:bg-white/5 p-3 rounded-xl border border-slate-100 dark:border-white/5 shadow-sm">
+                            <div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Downloaded
+                            </div>
+                            <div class="text-xl font-mono font-bold text-blue-600 dark:text-blue-400"
+                                x-text="progress.current || '-'"></div>
+                        </div>
+                        <div
+                            class="bg-white dark:bg-white/5 p-3 rounded-xl border border-slate-100 dark:border-white/5 shadow-sm">
+                            <div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Status</div>
+                            <div class="text-sm font-medium truncate text-slate-600 dark:text-slate-300 pt-1"
+                                x-text="taskStatus"></div>
+                        </div>
+                    </div>
+
+                    <!-- Logs -->
+                    <div class="relative group">
+                        <div class="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span class="text-[10px] bg-black/50 text-white px-2 py-1 rounded">Logs</span>
+                        </div>
+                        <div class="h-32 overflow-y-auto custom-scrollbar text-[10px] font-mono leading-relaxed text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-black/20 rounded-lg p-3 border border-slate-200 dark:border-transparent"
+                            x-ref="logContainer">
+                            <template x-for="log in taskLogs">
+                                <div x-text="log"
+                                    class="truncate hover:text-slate-800 dark:hover:text-slate-200 transition-colors">
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MARKDOWN CONTENT -->
+            <article x-show="currentFile" class="prose prose-slate dark:prose-invert prose-lg mx-auto pb-32"
+                id="markdown-viewer">
+                <!-- Content injected here -->
+            </article>
+
+        </div>
+
+    </main>
+
+    <script>
+        function reader() {
+            return {
+                isDark: localStorage.getItem('theme') === 'dark',
+                sidebarWidth: parseInt(localStorage.getItem('sidebarWidth')) || 280,
+                viewMode: 'library',
+                library: [],
+                currentFile: null,
+
+                // Downloader State
+                urlInput: '',
+                isDownloading: false,
+                taskId: null,
+                taskLogs: [],
+                taskStatus: '',
+                pollInterval: null,
+
+                // Progress State
+                progress: { current: 0, total: 0, current_url: '' },
+                progressPercent: 0,
+                nativeCount: 0,
+
+                // Advanced Options
+                showAdvanced: true,
+                strategy: 'auto',
+                useSelenium: false,
+                filterInclude: '',
+                filterExclude: '',
+
+                // TOC State
+                activeHeaderId: null,
+                observer: null,
+
+                init() {
+                    if (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                        this.isDark = true;
+                    }
+                    this.fetchLibrary();
+                },
+
+                toggleTheme() {
+                    this.isDark = !this.isDark;
+                    localStorage.setItem('theme', this.isDark ? 'dark' : 'light');
+                },
+
+                async fetchLibrary() {
+                    try {
+                        const res = await fetch(`/api/history?t=${new Date().getTime()}`);
+                        const data = await res.json();
+                        this.library = data.files || [];
+                    } catch (e) { console.error(e); }
+                },
+
+                goHome() {
+                    this.viewMode = 'library';
+                    this.currentFile = null;
+                    document.title = 'Clean Reader';
+                },
+
+                async openFile(file) {
+                    this.currentFile = file;
+                    this.viewMode = 'reader';
+                    document.getElementById('markdown-viewer').innerHTML = '<div class="animate-pulse space-y-4"><div class="h-4 bg-slate-200 rounded w-3/4"></div><div class="h-4 bg-slate-200 rounded"></div></div>'; // Loading
+
+                    const res = await fetch(`/api/content/${file.filename}`);
+                    const data = await res.json();
+
+                    if (data.error) {
+                        alert(data.error);
+                        return;
+                    }
+
+                    // Render Markdown
+                    const html = marked.parse(data.content);
+                    document.getElementById('markdown-viewer').innerHTML = html;
+                    document.title = file.title || file.filename;
+
+                    // Syntax Highlight
+                    document.querySelectorAll('pre code').forEach((el) => {
+                        hljs.highlightElement(el);
+                    });
+
+                    // Build TOC
+                    this.buildTOC();
+
+                    // Spy Scroll
+                    this.$nextTick(() => {
+                        this.initScrollSpy();
+                    });
+                },
+
+                buildTOC() {
+                    const container = document.getElementById('outline-tree');
+                    container.innerHTML = '';
+                    const headers = document.querySelectorAll('#markdown-viewer h1, #markdown-viewer h2, #markdown-viewer h3');
+
+                    if (headers.length === 0) return;
+
+                    // Simple flat list for now or reconstruct tree?
+                    // Let's stick to the tree logic or just a flat list with indentation since the previous code was complex alpine tree component. 
+                    // For stability, use a simple indentation map.
+
+                    let html = '';
+                    headers.forEach((h, index) => {
+                        h.id = `header-${index}`;
+                        const level = parseInt(h.tagName[1]);
+                        const padding = (level - 1) * 12;
+
+                        html += `
+                        <div class="relative group">
+                            <div class="toc-tree-line" style="left: ${padding + 10}px"></div> 
+                            <a href="#header-${index}" 
+                               class="block py-1.5 pr-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors truncate text-xs"
+                               style="padding-left: ${padding + 24}px"
+                               :class="{ 'text-blue-600 dark:text-blue-400 font-medium': activeHeaderId === 'header-${index}' }"
+                               @click.prevent="scrollToHeader('header-${index}')">
+                                ${h.innerText}
+                            </a>
+                        </div>`;
+                    });
+
+                    container.innerHTML = html;
+                },
+
+                scrollToHeader(id) {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        document.getElementById('main-scroll').scrollTo({
+                            top: el.offsetTop - 80, // Offset for sticky header
+                            behavior: 'smooth'
+                        });
+                        this.activeHeaderId = id;
+                    }
+                },
+
+                initScrollSpy() {
+                    if (this.observer) this.observer.disconnect();
+                    const options = {
+                        root: document.getElementById('main-scroll'),
+                        rootMargin: '-60px 0px -80% 0px',
+                        threshold: 0
+                    };
+
+                    this.observer = new IntersectionObserver((entries) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                this.activeHeaderId = entry.target.id;
+                            }
+                        });
+                    }, options);
+
+                    document.querySelectorAll('#markdown-viewer h1, #markdown-viewer h2, #markdown-viewer h3').forEach(h => {
+                        this.observer.observe(h);
+                    });
+                },
+
+                downloadPdf() {
+                    if (!this.currentFile) return;
+                    const url = `/api/download_pdf/${this.currentFile.filename}`;
+                    window.open(url, '_blank');
+                },
+
+                async startDownload() {
+                    if (!this.urlInput) return;
+                    this.isDownloading = true;
+                    this.taskLogs = ['Initializing...'];
+                    this.progress = { current: 0, total: 0 };
+                    this.progressPercent = 0;
+                    this.nativeCount = 0;
+
+                    try {
+                        const res = await fetch('/api/download', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                url: this.urlInput,
+                                filename: '',
+                                strategy: this.strategy,
+                                use_selenium: this.useSelenium
+                            })
+                        });
+                        const data = await res.json();
+                        this.taskId = data.task_id;
+                        this.pollInterval = setInterval(() => this.pollStatus(), 1000);
+
+                    } catch (e) {
+                        this.isDownloading = false;
+                        alert("Download failed to start: " + e.message);
+                    }
+                },
+
+                async pollStatus() {
+                    if (!this.taskId) return;
+                    try {
+                        const res = await fetch(`/api/status/${this.taskId}`);
+                        const data = await res.json();
+
+                        this.taskStatus = data.status;
+
+                        // Update Progress from Backend
+                        if (data.progress) {
+                            this.progress = data.progress;
+                            // Calculate percentage
+                            if (this.progress.total > 0) {
+                                this.progressPercent = (this.progress.current / this.progress.total) * 100;
+                            }
+
+                            // Check description for Native Probe stats or similar
+                            // (If backend sends 'native_count' in data, use it. For now, rely on logs or status msg)
+                            if (this.progress.status && this.progress.status.includes('Native')) {
+                                // Simple heuristic or just track it if backend sent it explicitly
+                            }
+                        }
+
+                        // Update Logs
+                        if (data.log) {
+                            // Only add new logs? Or replace? 
+                            // The backend simply appends. We can just use the backend log array or diff it.
+                            // For simplicity:
+                            this.taskLogs = data.log.slice(-50); // Keep last 50
+                        }
+
+                        if (data.status === 'completed') {
+                            this.progressPercent = 100;
+                            clearInterval(this.pollInterval);
+                            this.isDownloading = false;
+                            this.urlInput = '';
+                            this.fetchLibrary();
+                            setTimeout(() => { this.taskId = null; }, 5000);
+                        } else if (data.status === 'failed') {
+                            clearInterval(this.pollInterval);
+                            this.isDownloading = false;
+                            if (data.error) this.taskLogs.push('❌ Error: ' + data.error);
+                        }
+                    } catch (e) {
+                        console.error('Poll error', e);
+                    }
+                },
+
+                formatDate(ts) { return new Date(ts * 1000).toLocaleDateString(); },
+                formatSize(b) { return (b / 1024).toFixed(1) + ' KB'; },
+
+                // --- Resizer Logic ---
+                startResize(e) {
+                    const startX = e.clientX;
+                    const startWidth = this.sidebarWidth;
+                    const doDrag = (e) => {
+                        this.sidebarWidth = Math.max(200, Math.min(600, startWidth + e.clientX - startX));
+                    };
+                    const stopDrag = () => {
+                        localStorage.setItem('sidebarWidth', this.sidebarWidth);
+                        window.removeEventListener('mousemove', doDrag);
+                        window.removeEventListener('mouseup', stopDrag);
+                        document.body.style.cursor = '';
+                    };
+                    window.addEventListener('mousemove', doDrag);
+                    window.addEventListener('mouseup', stopDrag);
+                    document.body.style.cursor = 'col-resize';
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>
