@@ -347,70 +347,96 @@
                 <div x-show="taskId"
                     class="mt-8 p-6 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm transition-all duration-500">
 
-                    <!-- Header -->
-                    <div class="flex justify-between items-center mb-6">
-                        <div>
-                            <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                <span x-show="taskStatus === 'running'" class="flex h-3 w-3 relative">
-                                    <span
-                                        class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                                    <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
-                                </span>
-                                <span x-show="taskStatus === 'completed'" class="text-green-500"><i
-                                        class="ph ph-check-circle text-lg"></i></span>
-                                <span x-show="taskStatus === 'failed'" class="text-red-500"><i
-                                        class="ph ph-x-circle text-lg"></i></span>
+                    <!-- Phase Stepper -->
+                    <div class="mb-8">
+                        <div class="flex items-center justify-between relative">
+                            <div class="absolute left-0 right-0 top-1/2 h-0.5 bg-slate-200 dark:bg-white/10 -z-0"></div>
 
+                            <!-- Step 1: Analysis -->
+                            <div class="relative z-10 flex flex-col items-center gap-2">
+                                <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300"
+                                    :class="getStageStatus('analyzing')">
+                                    <i class="ph" :class="getStageIcon('analyzing')"></i>
+                                </div>
                                 <span
-                                    x-text="taskStatus === 'running' ? 'Downloading...' : (taskStatus === 'completed' ? 'Download Complete' : 'Download Failed')"></span>
-                            </h3>
-                            <p class="text-xs text-slate-500 mt-1" x-text="progress.status || 'Initializing engine...'">
-                            </p>
-                        </div>
-                        <div class="text-right">
-                            <span class="text-2xl font-bold text-slate-700 dark:text-slate-200 font-mono"
-                                x-text="Math.round(progressPercent) + '%'"></span>
+                                    class="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Analysis</span>
+                            </div>
+
+                            <!-- Step 2: Probing -->
+                            <div class="relative z-10 flex flex-col items-center gap-2">
+                                <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300"
+                                    :class="getStageStatus('probing')">
+                                    <i class="ph" :class="getStageIcon('probing')"></i>
+                                </div>
+                                <span
+                                    class="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Prob.</span>
+                            </div>
+
+                            <!-- Step 3: Downloading -->
+                            <div class="relative z-10 flex flex-col items-center gap-2">
+                                <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300"
+                                    :class="getStageStatus('downloading')">
+                                    <i class="ph" :class="getStageIcon('downloading')"></i>
+                                </div>
+                                <span
+                                    class="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Content</span>
+                            </div>
+
+                            <!-- Step 4: Merging -->
+                            <div class="relative z-10 flex flex-col items-center gap-2">
+                                <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300"
+                                    :class="getStageStatus('merging')">
+                                    <i class="ph" :class="getStageIcon('merging')"></i>
+                                </div>
+                                <span
+                                    class="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Merge</span>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Progress Bar -->
-                    <div class="h-2 w-full bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden mb-6">
-                        <div class="h-full bg-blue-500 transition-all duration-500 ease-out relative"
-                            :style="`width: ${progressPercent}%`">
-                            <div class="absolute inset-0 bg-white/20 animate-pulse"></div>
-                        </div>
-                    </div>
-
-                    <!-- Stats Grid -->
-                    <div class="grid grid-cols-3 gap-4 mb-6">
+                    <!-- Main Stats Cards -->
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                        <!-- Total Found -->
                         <div
-                            class="bg-white dark:bg-white/5 p-3 rounded-xl border border-slate-100 dark:border-white/5 shadow-sm">
-                            <div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Total</div>
-                            <div class="text-xl font-mono font-bold text-slate-700 dark:text-slate-200"
+                            class="bg-white dark:bg-white/5 p-4 rounded-xl border border-slate-100 dark:border-white/5 shadow-sm text-center">
+                            <div class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Total Pages
+                            </div>
+                            <div class="text-2xl font-mono font-bold text-slate-800 dark:text-white"
                                 x-text="progress.total || '-'"></div>
                         </div>
+                        <!-- Native Success -->
                         <div
-                            class="bg-white dark:bg-white/5 p-3 rounded-xl border border-slate-100 dark:border-white/5 shadow-sm">
-                            <div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Downloaded
-                            </div>
-                            <div class="text-xl font-mono font-bold text-blue-600 dark:text-blue-400"
-                                x-text="progress.current || '-'"></div>
+                            class="bg-white dark:bg-white/5 p-4 rounded-xl border border-slate-100 dark:border-white/5 shadow-sm text-center">
+                            <div class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Downloaded</div>
+                            <div class="text-2xl font-mono font-bold text-blue-600 dark:text-blue-400"
+                                x-text="progress.current || 0"></div>
                         </div>
+                        <!-- Current Speed/Est -->
                         <div
-                            class="bg-white dark:bg-white/5 p-3 rounded-xl border border-slate-100 dark:border-white/5 shadow-sm">
-                            <div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Status</div>
-                            <div class="text-sm font-medium truncate text-slate-600 dark:text-slate-300 pt-1"
-                                x-text="taskStatus"></div>
+                            class="bg-white dark:bg-white/5 p-4 rounded-xl border border-slate-100 dark:border-white/5 shadow-sm text-center">
+                            <div class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Status</div>
+                            <div class="text-sm font-medium text-slate-600 dark:text-slate-300 truncate pt-1"
+                                x-text="progress.status || 'Waiting...'"></div>
+                        </div>
+                        <!-- Elapsed Time (Mockup) -->
+                        <div
+                            class="bg-white dark:bg-white/5 p-4 rounded-xl border border-slate-100 dark:border-white/5 shadow-sm text-center">
+                            <div class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Stage</div>
+                            <div class="text-sm font-bold text-purple-600 dark:text-purple-400 pt-1 uppercase"
+                                x-text="currentStage || 'Ready'"></div>
                         </div>
                     </div>
 
-                    <!-- Logs -->
-                    <div class="relative group">
-                        <div class="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <span class="text-[10px] bg-black/50 text-white px-2 py-1 rounded">Logs</span>
-                        </div>
-                        <div class="h-32 overflow-y-auto custom-scrollbar text-[10px] font-mono leading-relaxed text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-black/20 rounded-lg p-3 border border-slate-200 dark:border-transparent"
-                            x-ref="logContainer">
+                    <!-- Hidden Verbose Log Toggle -->
+                    <div x-data="{ showLogs: false }">
+                        <button @click="showLogs = !showLogs"
+                            class="w-full py-2 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 flex items-center justify-center gap-1 transition-colors">
+                            <span x-text="showLogs ? 'Hide Detailed Logs' : 'Show Developer Logs'"></span>
+                            <i class="ph" :class="showLogs ? 'ph-caret-up' : 'ph-caret-down'"></i>
+                        </button>
+
+                        <div x-show="showLogs" x-collapse
+                            class="mt-4 h-48 overflow-y-auto custom-scrollbar text-[10px] font-mono leading-relaxed text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-black/20 rounded-lg p-3 border border-slate-200 dark:border-transparent">
                             <template x-for="log in taskLogs">
                                 <div x-text="log"
                                     class="truncate hover:text-slate-800 dark:hover:text-slate-200 transition-colors">
@@ -448,21 +474,52 @@
                 taskStatus: '',
                 pollInterval: null,
 
+                taskStatus: '',
+                pollInterval: null,
+
                 // Progress State
-                progress: { current: 0, total: 0, current_url: '' },
+                progress: { current: 0, total: 0, current_url: '', stage: '' },
                 progressPercent: 0,
-                nativeCount: 0,
+                currentStage: '', // analyzing, probing, downloading, merging, completed
 
                 // Advanced Options
                 showAdvanced: true,
                 strategy: 'fusion',
                 useSelenium: true,
                 filterInclude: '',
-                filterExclude: '',
 
                 // TOC State
                 activeHeaderId: null,
-                observer: null,
+
+                // --- STAGE LOGIC ---
+                getStageStatus(stageName) {
+                    const stages = ['analyzing', 'probing', 'downloading', 'merging'];
+                    const currentIdx = stages.indexOf(this.currentStage);
+                    const targetIdx = stages.indexOf(stageName);
+
+                    if (this.taskStatus === 'failed') return 'bg-red-100 text-red-600';
+                    if (this.taskStatus === 'completed') return 'bg-green-100 text-green-600';
+
+                    if (targetIdx < currentIdx) return 'bg-green-100 text-green-600'; // Completed
+                    if (targetIdx === currentIdx) return 'bg-blue-600 text-white animate-pulse shadow-lg ring-4 ring-blue-100'; // Active
+                    return 'bg-slate-100 text-slate-400'; // Pending
+                },
+
+                getStageIcon(stageName) {
+                    const icons = {
+                        analyzing: 'ph-magnifying-glass',
+                        probing: 'ph-lightning',
+                        downloading: 'ph-download-simple',
+                        merging: 'ph-files'
+                    };
+                    const stages = ['analyzing', 'probing', 'downloading', 'merging'];
+                    const currentIdx = stages.indexOf(this.currentStage);
+                    const targetIdx = stages.indexOf(stageName);
+
+                    if (this.taskStatus === 'completed') return 'ph-check';
+                    if (targetIdx < currentIdx) return 'ph-check';
+                    return icons[stageName];
+                },
 
                 init() {
                     if (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches) {
@@ -471,135 +528,15 @@
                     this.fetchLibrary();
                 },
 
-                toggleTheme() {
-                    this.isDark = !this.isDark;
-                    localStorage.setItem('theme', this.isDark ? 'dark' : 'light');
-                },
-
-                async fetchLibrary() {
-                    try {
-                        const res = await fetch(`/api/history?t=${new Date().getTime()}`);
-                        const data = await res.json();
-                        this.library = data.files || [];
-                    } catch (e) { console.error(e); }
-                },
-
-                goHome() {
-                    this.viewMode = 'library';
-                    this.currentFile = null;
-                    document.title = 'Clean Reader';
-                },
-
-                async openFile(file) {
-                    this.currentFile = file;
-                    this.viewMode = 'reader';
-                    document.getElementById('markdown-viewer').innerHTML = '<div class="animate-pulse space-y-4"><div class="h-4 bg-slate-200 rounded w-3/4"></div><div class="h-4 bg-slate-200 rounded"></div></div>'; // Loading
-
-                    const res = await fetch(`/api/content/${file.filename}`);
-                    const data = await res.json();
-
-                    if (data.error) {
-                        alert(data.error);
-                        return;
-                    }
-
-                    // Render Markdown
-                    const html = marked.parse(data.content);
-                    document.getElementById('markdown-viewer').innerHTML = html;
-                    document.title = file.title || file.filename;
-
-                    // Syntax Highlight
-                    document.querySelectorAll('pre code').forEach((el) => {
-                        hljs.highlightElement(el);
-                    });
-
-                    // Build TOC
-                    this.buildTOC();
-
-                    // Spy Scroll
-                    this.$nextTick(() => {
-                        this.initScrollSpy();
-                    });
-                },
-
-                buildTOC() {
-                    const container = document.getElementById('outline-tree');
-                    container.innerHTML = '';
-                    const headers = document.querySelectorAll('#markdown-viewer h1, #markdown-viewer h2, #markdown-viewer h3');
-
-                    if (headers.length === 0) return;
-
-                    // Simple flat list for now or reconstruct tree?
-                    // Let's stick to the tree logic or just a flat list with indentation since the previous code was complex alpine tree component. 
-                    // For stability, use a simple indentation map.
-
-                    let html = '';
-                    headers.forEach((h, index) => {
-                        h.id = `header-${index}`;
-                        const level = parseInt(h.tagName[1]);
-                        const padding = (level - 1) * 12;
-
-                        html += `
-                        <div class="relative group">
-                            <div class="toc-tree-line" style="left: ${padding + 10}px"></div> 
-                            <a href="#header-${index}" 
-                               class="block py-1.5 pr-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors truncate text-xs"
-                               style="padding-left: ${padding + 24}px"
-                               :class="{ 'text-blue-600 dark:text-blue-400 font-medium': activeHeaderId === 'header-${index}' }"
-                               @click.prevent="scrollToHeader('header-${index}')">
-                                ${h.innerText}
-                            </a>
-                        </div>`;
-                    });
-
-                    container.innerHTML = html;
-                },
-
-                scrollToHeader(id) {
-                    const el = document.getElementById(id);
-                    if (el) {
-                        document.getElementById('main-scroll').scrollTo({
-                            top: el.offsetTop - 80, // Offset for sticky header
-                            behavior: 'smooth'
-                        });
-                        this.activeHeaderId = id;
-                    }
-                },
-
-                initScrollSpy() {
-                    if (this.observer) this.observer.disconnect();
-                    const options = {
-                        root: document.getElementById('main-scroll'),
-                        rootMargin: '-60px 0px -80% 0px',
-                        threshold: 0
-                    };
-
-                    this.observer = new IntersectionObserver((entries) => {
-                        entries.forEach(entry => {
-                            if (entry.isIntersecting) {
-                                this.activeHeaderId = entry.target.id;
-                            }
-                        });
-                    }, options);
-
-                    document.querySelectorAll('#markdown-viewer h1, #markdown-viewer h2, #markdown-viewer h3').forEach(h => {
-                        this.observer.observe(h);
-                    });
-                },
-
-                downloadPdf() {
-                    if (!this.currentFile) return;
-                    const url = `/api/download_pdf/${this.currentFile.filename}`;
-                    window.open(url, '_blank');
-                },
+                // ... (rest of method) ...
 
                 async startDownload() {
                     if (!this.urlInput) return;
                     this.isDownloading = true;
                     this.taskLogs = ['Initializing...'];
-                    this.progress = { current: 0, total: 0 };
+                    this.progress = { current: 0, total: 0, stage: 'analyzing' };
+                    this.currentStage = 'analyzing';
                     this.progressPercent = 0;
-                    this.nativeCount = 0;
 
                     try {
                         const res = await fetch('/api/download', {
@@ -633,15 +570,15 @@
                         // Update Progress from Backend
                         if (data.progress) {
                             this.progress = data.progress;
+
+                            // SYNC STAGE
+                            if (this.progress.stage) {
+                                this.currentStage = this.progress.stage;
+                            }
+
                             // Calculate percentage
                             if (this.progress.total > 0) {
                                 this.progressPercent = (this.progress.current / this.progress.total) * 100;
-                            }
-
-                            // Check description for Native Probe stats or similar
-                            // (If backend sends 'native_count' in data, use it. For now, rely on logs or status msg)
-                            if (this.progress.status && this.progress.status.includes('Native')) {
-                                // Simple heuristic or just track it if backend sent it explicitly
                             }
                         }
 

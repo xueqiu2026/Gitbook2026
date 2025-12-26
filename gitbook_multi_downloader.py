@@ -186,12 +186,14 @@ class GitBookMultiDownloader:
                             'title': node['title']
                         }
                     
+                    self._emit_progress("stage", "analyzing")
                     self.logger.info(f"📋 Fusion Manager found {len(hierarchy_map)} unique pages across sources")
                     urls = [u for u in hierarchy_map.keys() if self._should_process(u)]
                     self.logger.info(f"🔍 Filtered to {len(urls)} pages")
                     
                     # --- SMART PROBE INTEGRATION ---
                     # 1. Try to get native markdown first
+                    self._emit_progress("stage", "probing")
                     native_pages_map = await self.smart_probe.probe_and_download(urls, progress_callback=on_progress)
                     native_pages = []
                     
@@ -230,6 +232,7 @@ class GitBookMultiDownloader:
                     # 2. Fallback to Selenium/Scraping for the rest
                     if remaining_urls:
                         if self.use_selenium:
+                            self._emit_progress("stage", "downloading")
                             self.logger.info(f"🕷️ Falling back to Selenium for {len(remaining_urls)} complex pages...")
                             selenium_pages = await self.strategies['scraping'].download_with_selenium(remaining_urls, progress_callback=on_progress)
                             pages.extend(selenium_pages)
@@ -244,6 +247,7 @@ class GitBookMultiDownloader:
 
             # 1. Try Hierarchy Strategy if Selenium enabled AND not already done
             if not pages and self.use_selenium and self.strategy != 'universal':
+                self._emit_progress("stage", "analyzing")
                 self.logger.info("🌳 Fetching page structure from Sidebar...")
                 hierarchy_map = self.hierarchy_manager.build_hierarchy(self.url)
                 
@@ -253,6 +257,7 @@ class GitBookMultiDownloader:
                     
                     # Use Selenium strategy to download content (handles SPAs correctly)
                     # No filtering by section_path here, as Sidebar is authoritative
+                    self._emit_progress("stage", "downloading")
                     pages = await self.strategies['scraping'].download_with_selenium(urls)
                     
                     if pages:
@@ -270,6 +275,7 @@ class GitBookMultiDownloader:
 
                 for strategy_name in strategy_order:
                     try:
+                        self._emit_progress("stage", "analyzing")
                         self.logger.info(f"🔄 Trying {strategy_name} strategy...")
                         strategy = self.strategies[strategy_name]
                         pages = await strategy.extract_pages(self.url, self.section_path)
@@ -292,6 +298,7 @@ class GitBookMultiDownloader:
             self.stats['pages_downloaded'] = len(pages)
 
             # Consolidate content
+            self._emit_progress("stage", "merging")
             self.logger.info("📝 Consolidating content...")
             
             final_content = await self.consolidator.consolidate_pages(

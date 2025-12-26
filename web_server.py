@@ -122,8 +122,14 @@ def run_download_task(task_id: str, req: DownloadRequest):
                     json_str = line[10:].strip()
                     data = json.loads(json_str)
                     # Update task progress data
-                    if 'type' in data and data['type'] == 'progress':
-                         tasks[task_id]['progress'] = data['data']
+                    if 'type' in data:
+                        if data['type'] == 'progress':
+                             tasks[task_id]['progress'] = data['data']
+                        elif data['type'] == 'stage':
+                             # Store stage info in progress or separate field
+                             if 'progress' not in tasks[task_id]: tasks[task_id]['progress'] = {}
+                             tasks[task_id]['progress']['stage'] = data['data']
+
                     elif 'type' in data and data['type'] == 'log':
                          # Structured log?
                          pass
