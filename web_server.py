@@ -177,7 +177,9 @@ async def get_history():
     # Scan library directory
     md_files = list(LIBRARY_DIR.glob("*.md"))
     # DEBUG: Scanning
-    logger.debug(f"Scanning {LIBRARY_DIR}, found {len(md_files)} .md files")
+    try:
+        print(f"Scanning {LIBRARY_DIR}, found {len(md_files)} .md files")
+    except: pass
     
     for f in md_files:
         try:
